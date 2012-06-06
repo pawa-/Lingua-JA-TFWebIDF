@@ -1,4 +1,7 @@
 Revision history for Perl extension Lingua::JA::TFWebIDF
 
+0.02    Thu, 07 Jun 2012 02:21:07 +0900
+        - fixed documentation
+
 0.01    Wed, 06 Jun 2012 23:20:53 +0900
         - original version

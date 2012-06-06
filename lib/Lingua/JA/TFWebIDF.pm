@@ -10,7 +10,7 @@ use Lingua::JA::TFIDF;
 use Lingua::JA::TFIDF::Result;
 use List::MoreUtils ();
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 
 sub tfidf
@@ -97,6 +97,8 @@ sub config { shift; }
 1;
 
 __END__
+
+=encoding utf8
 
 =head1 NAME
 
