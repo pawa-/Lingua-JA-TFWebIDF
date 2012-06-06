@@ -1,0 +1,79 @@
+NAME
+    Lingua::JA::TFWebIDF - TF*WebIDF calculator
+
+SYNOPSIS
+      use Lingua::JA::TFWebIDF;
+      use feature qw/say/;
+      use Data::Dumper;
+
+      my $tfidf = Lingua::JA::TFWebIDF->new(
+          appid     => $appid,
+          fetch_df  => 1,
+          Furl_HTTP => { timeout => 3 },
+      );
+
+      say $tfidf->idf($word);
+      say $tfidf->df($word);
+
+      my %tf = (
+          '自然言語処理' => 9,
+          '自然言語'     => 6,
+          '自然言語理解' => 4,
+          '処理'         => 5,
+          '解析'         => 4,
+      );
+
+      $tfidf->ng_word(\@ng_words);
+
+      say Dumper $tfidf->tfidf($text)->dump;
+      say Dumper $tfidf->tfidf(\%tf)->dump;
+      say Dumper $tfidf->tf($text)->dump;
+
+      for my $result (@{ $tfidf->tfidf(\%tf)->list(5) })
+      {
+          my ($word, $score) = each %{$result};
+
+          say "$word: $score";
+      }
+
+      for my $result (@{ $tfidf->tf($text)->list(5) })
+      {
+          my ($word, $frequency) = each %{$result};
+
+          say "$word: $frequency";
+      }
+
+DESCRIPTION
+    Lingua::JA::TFWebIDF calculates TF*WebIDF scores.
+
+  new(%config)
+    See Lingua::JA::WebIDF.
+
+  tfidf( $text || \%tf )
+    Calculates TF*WebIDF score. If scalar value is set, MeCab separates the
+    value into appropriate morphemes. If you want to use other morphological
+    analyzers, you have to set a hash reference which contains terms and
+    their TF scores.
+
+  tf($text)
+    Calculates TF score.
+
+  ng_word(\@ng_words)
+    Sets NG words.
+
+  idf($word)
+    See Lingua::JA::WebIDF.
+
+  df($word)
+    See Lingua::JA::WebIDF.
+
+AUTHOR
+    pawa <pawapawa@cpan.org>
+
+SEE ALSO
+    Lingua::JA::WebIDF
+
+LICENSE
+    This library is free software; you can redistribute it and/or modify it
+    under the same terms as Perl itself.
+
