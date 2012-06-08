@@ -13,3 +13,5 @@ NG
 TF
 df
 idf
+API
+tfidf
