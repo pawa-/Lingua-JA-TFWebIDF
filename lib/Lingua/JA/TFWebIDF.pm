@@ -10,7 +10,7 @@ use Lingua::JA::TFIDF;
 use Lingua::JA::TFIDF::Result;
 use List::MoreUtils ();
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 
 sub tfidf
@@ -155,13 +155,13 @@ my ($appid, $word, @ng_words, $text);
 
 Lingua::JA::TFWebIDF calculates TF*WebIDF scores.
 
-Compared with Lingua::JA::TFIDF, this module has the following advantages.
+Compared with L<Lingua::JA::TFIDF>, this module has the following advantages.
 
 =over 4
 
-=item supports Tokyo Cabinet, Bing API, idf_type option, expires_in option and so on.
+=item * supports Tokyo Cabinet, Bing API, idf_type option, expires_in option and so on.
 
-=item tfidf function accepts \%tf. (This eases the use of other morphological analyzers.)
+=item * tfidf function accepts \%tf. (This eases the use of other morphological analyzers.)
 
 =back
 

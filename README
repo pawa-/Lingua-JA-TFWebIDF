@@ -49,10 +49,11 @@ DESCRIPTION
     Compared with Lingua::JA::TFIDF, this module has the following
     advantages.
 
-    supports Tokyo Cabinet, Bing API, idf_type option, expires_in option and
-    so on.
-    tfidf function accepts \%tf. (This eases the use of other morphological
-    analyzers.)
+    *   supports Tokyo Cabinet, Bing API, idf_type option, expires_in option
+        and so on.
+
+    *   tfidf function accepts \%tf. (This eases the use of other
+        morphological analyzers.)
 
 METHODS
   new(%config)
