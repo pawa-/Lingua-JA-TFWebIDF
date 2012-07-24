@@ -1,5 +1,29 @@
 Revision history for Perl extension Lingua::JA::TFWebIDF
 
+0.30    Wed, 25 Jul 2012 00:49:49 +0900
+        - added the following options
+            - pos1_filter
+            - pos2_filter
+            - pos3_filter
+            - ng_word
+            - term_length_min
+            - term_length_max
+            - concatenation_max
+            - tf_min
+            - df_min
+            - df_max
+            - fetch_unk_word_df
+
+        - added the following dependencies
+            - Text::MeCab
+            - Lingua::JA::Halfwidth::Katakana
+            - Test::Fatal
+            - Test::Warn
+
+        - removed the following dependencies
+            - Lingua::JA::TFIDF
+            - List::MoreUtils
+
 0.04    Fri, 08 Jun 2012 19:36:22 +0900
         - improved documentation
 
