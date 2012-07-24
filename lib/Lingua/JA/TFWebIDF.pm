@@ -412,17 +412,26 @@ my ($appid, $word, @ng_words, $text);
 =head1 SYNOPSIS
 
   use Lingua::JA::TFWebIDF;
+  use utf8;
   use feature qw/say/;
-  use Data::Dumper;
+  use Data::Printer;
 
   my $tfidf = Lingua::JA::TFWebIDF->new(
-      appid     => $appid,
-      fetch_df  => 1,
-      Furl_HTTP => { timeout => 3 },
+      api               => 'YahooPremium',
+      appid             => $appid,
+      fetch_df          => 1,
+      Furl_HTTP         => { timeout => 3 },
+      driver            => 'TokyoCabinet',
+      df_file           => './yahoo.tch',
+      pos1_filter       => [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能 サ変接続/],
+      term_length_min   => 2,
+      tf_min            => 2,
+      df_min            => 1_0000,
+      df_max            => 500_0000,
+      ng_word           => [qw/編集 本人 自身 自分 たち さん/],
+      fetch_unk_word_df => 0,
+      concatenation_max => 100,
   );
-
-  say $tfidf->idf($word);
-  say $tfidf->df($word);
 
   my %tf = (
       '自然言語処理' => 9,
@@ -432,24 +441,16 @@ my ($appid, $word, @ng_words, $text);
       '解析'         => 4,
   );
 
-  $tfidf->ng_word(\@ng_words);
+  p $tfidf->tfidf(\%tf)->dump;
 
-  say Dumper $tfidf->tfidf($text)->dump;
-  say Dumper $tfidf->tfidf(\%tf)->dump;
-  say Dumper $tfidf->tf($text)->dump;
+  p $tfidf->tfidf($text)->dump;
+  p $tfidf->tf($text)->dump;
 
-  for my $result (@{ $tfidf->tfidf(\%tf)->list(5) })
+  for my $result (@{ $tfidf->tfidf($text)->list(20) })
   {
       my ($word, $score) = each %{$result};
 
       say "$word: $score";
-  }
-
-  for my $result (@{ $tfidf->tf($text)->list(5) })
-  {
-      my ($word, $frequency) = each %{$result};
-
-      say "$word: $frequency";
   }
 
 
@@ -461,7 +462,7 @@ Compared with L<Lingua::JA::TFIDF>, this module has the following advantages.
 
 =over 4
 
-=item * supports Tokyo Cabinet, Bing API, idf_type option, expires_in option and so on.
+=item * supports Tokyo Cabinet, Bing API and many options.
 
 =item * tfidf function accepts \%tf. (This eases the use of other morphological analyzers.)
 
@@ -469,9 +470,70 @@ Compared with L<Lingua::JA::TFIDF>, this module has the following advantages.
 
 =head1 METHODS
 
-=head2 new(%config)
+=head2 new( %config || \%config )
+
+Creates a new Lingua::JA::TFWebIDF instance.
+
+The following configuration is used if you don't set %config.
+
+  KEY                 DEFAULT VALUE
+  -----------         ---------------
+  pos1_filter         [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能 接尾/]
+  pos2_filter         []
+  pos3_filter         []
+  ng_word             []
+  term_length_min     2
+  term_length_max     30
+  concatenation_max   30
+  tf_min              1
+  df_min              0
+  df_max              250_0000_0000
+  fetch_unk_word_df   0
+
+  idf_type            1
+  api                 'Yahoo'
+  appid               undef
+  driver              'Storable'
+  df_file             undef
+  fetch_df            1
+  expires_in          365
+  documents           250_0000_0000
+  Furl_HTTP           undef
+
+=over 4
+
+=item pos(1|2|3)_filter => \@pos
+
+The filters of '品詞細分類'.
+
+=item concatenation_max => $num
+
+The maximum value of the number of term concatenations.
+
+If 2 is specified, 2 consecutive nouns are concatenated.
+I recommend that you specify a large value or 0.
+
+If half width spaces or tabs are ignored,
+you need to replace them with full width spaces.
+
+=item fetch_df => 0 || 1
+
+1: fetches the DF score of a word which exists in the
+dictionary of MeCab if DF score of its word is not fetched yet.
+
+0: average DF score is used.
+
+=item fetch_unk_word_df => 0 || 1
+
+'unk word' is a word which not exists in the dictionary of MeCab.
+
+0: average DF score is used.
+
+=item idf_type, api, appid, driver, df_file, expires_in, documents, Furl_HTTP
 
 See L<Lingua::JA::WebIDF>.
+
+=back
 
 =head2 tfidf( $text || \%tf )
 
@@ -482,17 +544,9 @@ a hash reference which contains terms and their TF scores.
 
 =head2 tf($text)
 
-Calculates TF score.
+Calculates TF score via MeCab.
 
-=head2 ng_word(\@ng_words)
-
-Sets NG words.
-
-=head2 idf($word)
-
-See L<Lingua::JA::WebIDF>.
-
-=head2 df($word)
+=head2 idf, df, purge
 
 See L<Lingua::JA::WebIDF>.
 

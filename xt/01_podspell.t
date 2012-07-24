@@ -15,3 +15,6 @@ df
 idf
 API
 tfidf
+api
+appid
+unk
