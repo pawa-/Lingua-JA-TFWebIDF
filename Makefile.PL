@@ -5,11 +5,13 @@ all_from 'lib/Lingua/JA/TFWebIDF.pm';
 
 requires 'parent';
 requires 'Carp';
-requires 'Lingua::JA::TFIDF' => 0.04;
-requires 'Lingua::JA::WebIDF';
-requires 'List::MoreUtils';
+requires 'Text::MeCab' => 0.20013;
+requires 'Lingua::JA::WebIDF' => 0.21;
+requires 'Lingua::JA::Halfwidth::Katakana';
 
-test_requires 'Test::More' => 0.88; # done_testing
+test_requires 'Test::More' => 0.98;
+test_requires 'Test::Fatal';
+test_requires 'Test::Warn' => 0.20;
 
 tests 't/*.t';
 author_tests 'xt';

@@ -1,17 +1,22 @@
 use strict;
 use warnings;
+use utf8;
 use Lingua::JA::TFWebIDF;
 use Test::More;
 
+binmode Test::More->builder->$_ => ':utf8'
+    for qw/output failure_output todo_output/;
+
 
 my $tfidf = Lingua::JA::TFWebIDF->new(
-    appid    => 'test',
-    fetch_df => 0,
+    appid           => 'test',
+    fetch_df        => 0,
+    pos1_filter     => [],
+    pos2_filter     => [],
+    pos3_filter     => [],
+    term_length_min => 1,
+    ng_word         => [qw/表 課題/],
 );
-
-my @ng_words = qw/表/;
-
-$tfidf->ng_word(\@ng_words);
 
 my %tf = (
     '自然言語処理' => 9,
@@ -29,8 +34,11 @@ my %tf = (
 
 ok( !grep { $_ eq '表'   } fetch_term( $tfidf->tfidf(\%tf)->list(20) ) );
 ok(  grep { $_ eq '世界' } fetch_term( $tfidf->tfidf(\%tf)->list(20) ) );
-ok( !grep { $_ eq '表'   } fetch_term( $tfidf->tfidf("世界さん、これは表です。")->list(20) ) );
-ok(  grep { $_ eq '世界' } fetch_term( $tfidf->tfidf("世界さん、これは表です。")->list(20) ) );
+ok( !grep { $_ eq '課題' } fetch_term( $tfidf->tfidf(\%tf)->list(20) ) );
+
+# xt/10_ng_word.t
+#ok( !grep { $_ eq '表'   } fetch_term( $tfidf->tfidf("世界さん、これは表です。")->list(20) ) );
+#ok(  grep { $_ eq '世界' } fetch_term( $tfidf->tfidf("世界さん、これは表です。")->list(20) ) );
 
 done_testing;
 

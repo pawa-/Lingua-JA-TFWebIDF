@@ -3,96 +3,398 @@ package Lingua::JA::TFWebIDF;
 use 5.008_001;
 use strict;
 use warnings;
+use utf8;
 
 use parent 'Lingua::JA::WebIDF';
 use Carp ();
-use Lingua::JA::TFIDF;
-use Lingua::JA::TFIDF::Result;
-use List::MoreUtils ();
+use Encode qw/decode_utf8/;
+use Text::MeCab;
+use Lingua::JA::Halfwidth::Katakana;
+use Lingua::JA::TFWebIDF::Result;
 
-our $VERSION = '0.04';
+our $VERSION = '0.30';
 
+
+sub new
+{
+    my $class = shift;
+    my %args  = (ref $_[0] eq 'HASH' ? %{$_[0]} : @_);
+
+    my %options;
+
+    for my $key (qw/pos2_filter pos3_filter ng_word/)
+    {
+        $options{$key} = delete $args{$key};
+        $options{$key} = [] unless defined $options{$key};
+    }
+
+    $options{pos1_filter}
+        = defined $args{pos1_filter}
+        ? delete $args{pos1_filter}
+        : [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能 接尾/]
+        ;
+
+    $options{term_length_min}   = defined $args{term_length_min}   ? delete $args{term_length_min}   : 2;
+    $options{term_length_max}   = defined $args{term_length_max}   ? delete $args{term_length_max}   : 30;
+    $options{concatenation_max} = defined $args{concatenation_max} ? delete $args{concatenation_max} : 30;
+    $options{tf_min}            = defined $args{tf_min}            ? delete $args{tf_min}            : 1;
+    $options{df_min}            = defined $args{df_min}            ? delete $args{df_min}            : 0;
+    $options{df_max}            = defined $args{df_max}            ? delete $args{df_max}            : 250_0000_0000;
+    $options{fetch_unk_word_df} = defined $args{fetch_unk_word_df} ? delete $args{fetch_unk_word_df} : 0;
+
+    my $self = $class->SUPER::new(\%args);
+
+    $self->{mecab} = Text::MeCab->new(
+        { node_format => '%m\t%H\n', unk_format => '%m\t%H\tUNK\n' }
+    );
+
+    # from array to hash
+    @{ $self->{pos1_filter} }{ @{ $options{pos1_filter} } } = ();
+    @{ $self->{pos2_filter} }{ @{ $options{pos2_filter} } } = ();
+    @{ $self->{pos3_filter} }{ @{ $options{pos3_filter} } } = ();
+    @{ $self->{ng_word}     }{ @{ $options{ng_word}     } } = ();
+
+    $self->{$_} = $options{$_}
+        for qw/term_length_min term_length_max concatenation_max tf_min df_min df_max fetch_unk_word_df/;
+
+    return $self;
+}
 
 sub tfidf
 {
     my ($self, $args) = @_;
 
+    if (!defined $args)
+    {
+        Carp::carp("tfidf method was called without arguments");
+        return Lingua::JA::TFWebIDF::Result->new({});
+    }
+
+
+    my $tf_min = $self->{tf_min};
+    my $df_min = $self->{df_min};
+    my $df_max = $self->{df_max};
+
+    my ($df_sum, $df_num, @failed_to_fetch_df);
+
+    my $data = {};
+
     if (ref $args eq 'HASH')
     {
-        my $num = shift;
+        my $term_length_min = $self->{term_length_min};
+        my $term_length_max = $self->{term_length_max};
+        my $ng_word         = $self->{ng_word};
 
-        my $data = {};
+        if ($self->{fetch_df}) { $self->db_open('write'); }
+        else                   { $self->db_open('read'); }
 
         for my $word (keys %{$args})
         {
-            next if List::MoreUtils::any { $word eq $_ } @{ $self->_ng_word };
+            next if length $word < $term_length_min;
+            next if length $word > $term_length_max;
+            next if exists $ng_word->{$word};
+            next if $args->{$word} < $tf_min;
 
-            $data->{$word}->{tf}    = $args->{$word};
-            $data->{$word}->{tfidf} = $data->{$word}->{tf} * $self->idf($word);
+            $data->{$word}{tf} = $args->{$word};
 
-            # give priority to speed
-            #$data->{$word}->{df} = $self->df($word);
+            my $df = $self->df($word);
+
+            if (!defined $df)
+            {
+                push(@failed_to_fetch_df, $word);
+                next;
+            }
+
+            if ($df < $df_min || $df > $df_max)
+            {
+                delete $data->{$word};
+                next;
+            }
+
+            $df_sum += $df;
+            $df_num++;
+
+            $data->{$word}{df}    = $df;
+            $data->{$word}{idf}   = $self->idf($data->{$word}{df}, 'df');
+            $data->{$word}{tfidf} = $data->{$word}{tf} * $data->{$word}{idf};
         }
-
-        return Lingua::JA::TFIDF::Result->new($data);
     }
     else
     {
-        my $data = $self->_calc_tf(\$args);
+        my @unknowns;
+        $data                 = $self->_calc_tf(\$args);
+        my $fetch_df          = $self->{fetch_df};
+        my $fetch_unk_word_df = $self->{fetch_unk_word_df};
+
+        if ($fetch_df || $fetch_unk_word_df) { $self->db_open('write'); }
+        else                                 { $self->db_open('read'); }
 
         for my $word (keys %{$data})
         {
-            $data->{$word}->{tfidf} = $data->{$word}->{tf} * $self->idf($word);
+            if ($data->{$word}{tf} < $tf_min)
+            {
+                delete $data->{$word};
+                next;
+            }
 
-            # give priority to speed
-            #$data->{$word}->{df} = $self->df($word);
+            if (
+               !$data->{$word}{unknown}
+            || ( ref $data->{$word}{unknown} eq 'ARRAY' && scalar @{ $data->{$word}{unknown} } == 1 && $data->{$word}{unknown}[0] == 0 )
+            )
+            {
+                my $df = $self->df($word);
+
+                if (!defined $df)
+                {
+                    push(@failed_to_fetch_df, $word);
+                    next;
+                }
+
+                if ($df < $df_min || $df > $df_max)
+                {
+                    delete $data->{$word};
+                    next;
+                }
+
+                $df_sum += $df;
+                $df_num++;
+
+                $data->{$word}{df}    = $df;
+                $data->{$word}{idf}   = $self->idf($data->{$word}{df}, 'df');
+                $data->{$word}{tfidf} = $data->{$word}{tf} * $data->{$word}{idf};
+            }
+            else { push(@unknowns, $word); }
         }
 
-        return Lingua::JA::TFIDF::Result->new($data);
+        for my $word (@unknowns)
+        {
+            my $df;
+
+            if ($fetch_df && $fetch_unk_word_df)
+            {
+                $df = $self->df($word);
+
+                if (!defined $df)
+                {
+                    push(@failed_to_fetch_df, $word);
+                    next;
+                }
+            }
+            else
+            {
+                my $df_and_time = $self->_fetch_df($word);
+
+                if (defined $df_and_time) { ($df) = split(/\t/, $df_and_time); }
+                else
+                {
+                    push(@failed_to_fetch_df, $word);
+                    next;
+                }
+            }
+
+            if ($df < $df_min || $df > $df_max)
+            {
+                delete $data->{$word};
+                next;
+            }
+
+            $df_sum += $df;
+            $df_num++;
+
+            $data->{$word}{df}    = $df;
+            $data->{$word}{idf}   = $self->idf($data->{$word}{df}, 'df');
+            $data->{$word}{tfidf} = $data->{$word}{tf} * $data->{$word}{idf};
+        }
     }
+
+    for my $word (@failed_to_fetch_df)
+    {
+        if ($df_num) { $data->{$word}{df} = int($df_sum / $df_num); }
+        else         { $data->{$word}{df} = $df_min;                }
+
+        $data->{$word}{idf}   = $self->idf($data->{$word}{df}, 'df');
+        $data->{$word}{tfidf} = $data->{$word}{tf} * $data->{$word}{idf};
+    }
+
+    $self->db_close;
+
+    return Lingua::JA::TFWebIDF::Result->new($data);
 }
 
 sub tf
 {
     my ($self, $text) = @_;
-    return Lingua::JA::TFIDF::tf($self, $text);
+
+    if (!defined $text)
+    {
+        Carp::carp("tf method was called without arguments");
+        return Lingua::JA::TFWebIDF::Result->new({});
+    }
+
+    my $data = $self->_calc_tf(\$text);
+
+    return Lingua::JA::TFWebIDF::Result->new($data);
 }
 
 sub _calc_tf
 {
     my ($self, $text_ref) = @_;
-    return Lingua::JA::TFIDF::_calc_tf($self, $text_ref);
+
+    my $data              = {};
+    my $mecab             = $self->{mecab};
+    my $pos1_filter       = $self->{pos1_filter};
+    my $pos2_filter       = $self->{pos2_filter};
+    my $pos3_filter       = $self->{pos3_filter};
+    my $ng_word           = $self->{ng_word};
+    my $concatenation_max = $self->{concatenation_max};
+    my $term_length_min   = $self->{term_length_min};
+    my $term_length_max   = $self->{term_length_max};
+
+    my ($concatenated_word, @concatenated_infos, @concatenated_unknowns);
+    my $concat_cnt = 0;
+
+    for (my $node = $mecab->parse($$text_ref); $node; $node = $node->next)
+    {
+        my $record = decode_utf8( $node->format($mecab) );
+
+        chomp $record;
+
+        my ($word, $info, $unknown) = split(/\t/, $record, 3);
+
+        if ( ! $concatenation_max )
+        {
+            next unless $info;
+            my ($pos, $pos1, $pos2, $pos3) = split(/,/, $info, 5);
+
+            if ($pos eq '名詞')
+            {
+                next if exists $pos1_filter->{$pos1};
+                next if exists $pos2_filter->{$pos2};
+                next if exists $pos3_filter->{$pos3};
+                next if exists $ng_word->{$word};
+                next if $unknown && $pos1 eq 'サ変接続';
+                next if length $word < $term_length_min;
+                next if length $word > $term_length_max;
+                next if length $word == 1 && $word =~ /[\p{InHiragana}\p{InKatakana}\p{InHalfwidthKatakana}]/;
+
+                $data->{$word}{tf}++;
+                $data->{$word}{unknown} = 1 if $unknown;
+                $data->{$word}{info}    = $info;
+            }
+        }
+        else
+        {
+            my $next;
+            $next = decode_utf8($node->next->surface) if $node->next;
+
+            my ($pos, $pos1, $pos2, $pos3);
+            my $is_ng_word = 0;
+
+            if ($info)
+            {
+                ($pos, $pos1, $pos2, $pos3) = split(/,/, $info, 5);
+
+                if (
+                     exists $pos1_filter->{$pos1}
+                  || exists $pos2_filter->{$pos2}
+                  || exists $pos3_filter->{$pos3}
+                  || exists $ng_word->{$word}
+                )
+                {
+                    $is_ng_word = 1;
+                }
+            }
+
+            if (
+                $info
+
+                &&
+
+                (
+
+                    ( length $concatenated_word && ($word eq '-' || $word eq '・') )
+
+                    ||
+
+                    (
+                        ($pos eq '名詞')
+
+                        &&
+
+                        (
+                            (!$is_ng_word && defined $next && $next eq '-')
+
+                            ||
+
+                            (!exists $ng_word->{$word} && $pos1 eq 'サ変接続' && !$unknown)
+
+                            ||
+
+                            (
+                                   !$is_ng_word
+                                && !($unknown && $pos1 eq 'サ変接続')
+                                && !(length $word < $term_length_min && !length $concatenated_word)
+                                && !(length $word > $term_length_max)
+                                && !(length $word == 1 && $word =~ /[\p{InHiragana}\p{InKatakana}\p{InHalfwidthKatakana}]/)
+                                && $concat_cnt <= $concatenation_max
+                            )
+                        )
+                    )
+                )
+            )
+            {
+                $concatenated_word .= $word;
+                push(@concatenated_infos, $info);
+
+                if ($unknown) { push(@concatenated_unknowns, 1); }
+                else          { push(@concatenated_unknowns, 0); }
+
+                $concat_cnt++;
+            }
+            elsif (length $concatenated_word)
+            {
+                my $last = substr($concatenated_word, (length $concatenated_word) - 1, 1);
+
+                if (length $concatenated_word >= $term_length_min && length $concatenated_word <= $term_length_max)
+                {
+                    if ($last eq '-' || $last eq '・')
+                    {
+                        if (length $concatenated_word > $term_length_min)
+                        {
+                            chop $concatenated_word;
+                            pop @concatenated_unknowns;
+                            pop @concatenated_infos;
+
+                            $data->{$concatenated_word}{tf}++;
+                            @{ $data->{$concatenated_word}->{unknown} } = @concatenated_unknowns;
+                            @{ $data->{$concatenated_word}->{info}    } = @concatenated_infos;
+                        }
+                    }
+                    else
+                    {
+                        unless (
+                                exists $pos1_filter->{'サ変接続'}
+                             && scalar @concatenated_infos == 1
+                             && (split(/,/, $concatenated_infos[0]))[1] eq 'サ変接続'
+                        )
+                        {
+                            $data->{$concatenated_word}{tf}++;
+                            @{ $data->{$concatenated_word}->{unknown} } = @concatenated_unknowns;
+                            @{ $data->{$concatenated_word}->{info}    } = @concatenated_infos;
+                        }
+                    }
+                }
+
+                $concatenated_word     = '';
+                @concatenated_infos    = ();
+                @concatenated_unknowns = ();
+                $concat_cnt = 0;
+            }
+        }
+    }
+
+    return $data;
 }
-
-sub mecab
-{
-    my $self = shift;
-    return Lingua::JA::TFIDF::mecab($self);
-}
-
-sub _mecab
-{
-    my ($self, $mecab) = @_;
-
-    $self->{mecab} = $mecab if $mecab;
-    return $self->{mecab};
-}
-
-sub ng_word
-{
-    my ($self, $ng_word) = @_;
-
-    $self->{ng_word} = $ng_word if $ng_word;
-    return $self->{ng_word};
-}
-
-sub _ng_word
-{
-    my $self = shift;
-    return Lingua::JA::TFIDF::_ng_word($self);
-}
-
-sub config { shift; }
 
 1;
 
