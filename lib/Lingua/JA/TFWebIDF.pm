@@ -518,16 +518,18 @@ you need to replace them with full width spaces.
 
 =item fetch_df => 0 || 1
 
-1: fetches the DF score of a word which exists in the
+1: Fetches the DF score of a word which exists in the
 dictionary of MeCab if DF score of its word is not fetched yet.
 
-0: average DF score is used.
+0: The average DF score is used.
 
 =item fetch_unk_word_df => 0 || 1
 
 'unk word' is a word which not exists in the dictionary of MeCab.
 
-0: average DF score is used.
+1: If fetch_df is 1, fetches DF score of unk word.
+
+0: The average DF score is used.
 
 =item idf_type, api, appid, driver, df_file, expires_in, documents, Furl_HTTP
 
