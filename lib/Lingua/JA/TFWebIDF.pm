@@ -12,7 +12,7 @@ use Text::MeCab;
 use Lingua::JA::Halfwidth::Katakana;
 use Lingua::JA::TFWebIDF::Result;
 
-our $VERSION = '0.30';
+our $VERSION = '0.31';
 
 
 sub new
