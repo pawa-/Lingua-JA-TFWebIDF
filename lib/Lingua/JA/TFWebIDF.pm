@@ -560,6 +560,8 @@ pawa E<lt>pawapawa@cpan.orgE<gt>
 
 L<Lingua::JA::WebIDF>
 
+L<Lingua::JA::WebIDF::Driver::TokyoTyrant>
+
 =head1 LICENSE
 
 This library is free software; you can redistribute it and/or modify

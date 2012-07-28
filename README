@@ -131,6 +131,8 @@ AUTHOR
 SEE ALSO
     Lingua::JA::WebIDF
 
+    Lingua::JA::WebIDF::Driver::TokyoTyrant
+
 LICENSE
     This library is free software; you can redistribute it and/or modify it
     under the same terms as Perl itself.
