@@ -1,5 +1,8 @@
 Revision history for Perl extension Lingua::JA::TFWebIDF
 
+0.34    Sun, 29 Jul 2012 14:53:15 +0900
+        - fixed unk tagging
+
 0.33    Sat, 28 Jul 2012 18:05:16 +0900
         - changed Lingua::JA::WebIDF dependency from 0.31 to 0.32
 
