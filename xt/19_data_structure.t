@@ -42,11 +42,12 @@ sub ds_check
 
     for my $word (keys %{$data})
     {
-        like($data->{$word}{df},    qr/^[0-9]+$/,    'df');
-        like($data->{$word}{idf},   qr/^[\.0-9]+$/,  'idf');
-        like($data->{$word}{info},  qr/^[^\.0-9]+$/, 'info') unless $type eq 'HASH';
-        like($data->{$word}{tf},    qr/^[0-9]+$/,    'tf');
-        like($data->{$word}{tfidf}, qr/^[\.0-9]+$/,  'tfidf');
+        like($data->{$word}{df},      qr/^[0-9]+$/,    'df');
+        like($data->{$word}{idf},     qr/^[\.0-9]+$/,  'idf');
+        like($data->{$word}{info},    qr/^[^\.0-9]+$/, 'info')    unless $type eq 'HASH';
+        like($data->{$word}{unknown}, qr/^[01]$/,      'unknown') unless $type eq 'HASH';
+        like($data->{$word}{tf},      qr/^[0-9]+$/,    'tf');
+        like($data->{$word}{tfidf},   qr/^[\.0-9]+$/,  'tfidf');
     }
 }
 

@@ -278,8 +278,10 @@ sub _calc_tf
                 next if length $word == 1 && $word =~ /[\p{InHiragana}\p{InKatakana}\p{InHalfwidthKatakana}]/;
 
                 $data->{$word}{tf}++;
-                $data->{$word}{unknown} = 1 if $unknown;
-                $data->{$word}{info}    = $info;
+                $data->{$word}{info} = $info;
+
+                if ($unknown) { $data->{$word}{unknown} = 1; }
+                else          { $data->{$word}{unknown} = 0; }
             }
         }
         else
