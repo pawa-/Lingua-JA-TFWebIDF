@@ -550,7 +550,7 @@ a hash reference which contains terms and their TF scores.
 
 Calculates TF score via MeCab.
 
-=head2 idf, df, purge
+=head2 idf, df, purge, db_open, db_close
 
 See L<Lingua::JA::WebIDF>.
 
@@ -563,6 +563,8 @@ pawa E<lt>pawapawa@cpan.orgE<gt>
 L<Lingua::JA::WebIDF>
 
 L<Lingua::JA::WebIDF::Driver::TokyoTyrant>
+
+L<Lingua::JA::TermExtractor>
 
 =head1 LICENSE
 

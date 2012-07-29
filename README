@@ -122,7 +122,7 @@ METHODS
   tf($text)
     Calculates TF score via MeCab.
 
-  idf, df, purge
+  idf, df, purge, db_open, db_close
     See Lingua::JA::WebIDF.
 
 AUTHOR
@@ -132,6 +132,8 @@ SEE ALSO
     Lingua::JA::WebIDF
 
     Lingua::JA::WebIDF::Driver::TokyoTyrant
+
+    Lingua::JA::TermExtractor
 
 LICENSE
     This library is free software; you can redistribute it and/or modify it
