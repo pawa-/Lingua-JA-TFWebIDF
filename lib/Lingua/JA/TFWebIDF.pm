@@ -41,6 +41,7 @@ sub new
     $options{df_min}            = defined $args{df_min}            ? delete $args{df_min}            : 0;
     $options{df_max}            = defined $args{df_max}            ? delete $args{df_max}            : 250_0000_0000;
     $options{fetch_unk_word_df} = defined $args{fetch_unk_word_df} ? delete $args{fetch_unk_word_df} : 0;
+    $options{db_auto}           = defined $args{db_auto}           ? delete $args{db_auto}           : 1;
 
     my $self = $class->SUPER::new(\%args);
 
@@ -62,7 +63,7 @@ sub new
 
 sub tfidf
 {
-    my ($self, $args) = @_;
+    my ($self, $args, $db_auto_arg) = @_;
 
     if (!defined $args)
     {
@@ -71,9 +72,10 @@ sub tfidf
     }
 
 
-    my $tf_min = $self->{tf_min};
-    my $df_min = $self->{df_min};
-    my $df_max = $self->{df_max};
+    my $tf_min  = $self->{tf_min};
+    my $df_min  = $self->{df_min};
+    my $df_max  = $self->{df_max};
+    my $db_auto = ($self->{db_auto} || $db_auto_arg) ? 1 : 0;
 
     my ($df_sum, $df_num, @failed_to_fetch_df);
 
@@ -85,8 +87,11 @@ sub tfidf
         my $term_length_max = $self->{term_length_max};
         my $ng_word         = $self->{ng_word};
 
-        if ($self->{fetch_df}) { $self->db_open('write'); }
-        else                   { $self->db_open('read'); }
+        if ($db_auto)
+        {
+            if ($self->{fetch_df}) { $self->db_open('write'); }
+            else                   { $self->db_open('read');  }
+        }
 
         for my $word (keys %{$args})
         {
@@ -126,8 +131,11 @@ sub tfidf
         my $fetch_df          = $self->{fetch_df};
         my $fetch_unk_word_df = $self->{fetch_unk_word_df};
 
-        if ($fetch_df || $fetch_unk_word_df) { $self->db_open('write'); }
-        else                                 { $self->db_open('read'); }
+        if ($db_auto)
+        {
+            if ($fetch_df || $fetch_unk_word_df) { $self->db_open('write'); }
+            else                                 { $self->db_open('read'); }
+        }
 
         for my $word (keys %{$data})
         {
@@ -216,7 +224,7 @@ sub tfidf
         $data->{$word}{tfidf} = $data->{$word}{tf} * $data->{$word}{idf};
     }
 
-    $self->db_close;
+    $self->db_close if $db_auto;
 
     return Lingua::JA::TFWebIDF::Result->new($data);
 }
@@ -491,6 +499,7 @@ The following configuration is used if you don't set %config.
   df_min              0
   df_max              250_0000_0000
   fetch_unk_word_df   0
+  db_auto             1
 
   idf_type            1
   api                 'Yahoo'
@@ -532,6 +541,10 @@ dictionary of MeCab if DF score of its word is not fetched yet.
 1: If fetch_df is 1, fetches DF score of unk word.
 
 0: The average DF score is used.
+
+=item db_auto => 0 || 1
+
+If 1 is specified, (open|close)s the DF(Document Frequency) database automatically.
 
 =item idf_type, api, appid, driver, df_file, expires_in, documents, Furl_HTTP
 

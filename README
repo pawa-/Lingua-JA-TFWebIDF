@@ -74,6 +74,7 @@ METHODS
       df_min              0
       df_max              250_0000_0000
       fetch_unk_word_df   0
+      db_auto             1
 
       idf_type            1
       api                 'Yahoo'
@@ -109,6 +110,10 @@ METHODS
         1: If fetch_df is 1, fetches DF score of unk word.
 
         0: The average DF score is used.
+
+    db_auto => 0 || 1
+        If 1 is specified, (open|close)s the DF(Document Frequency) database
+        automatically.
 
     idf_type, api, appid, driver, df_file, expires_in, documents, Furl_HTTP
         See Lingua::JA::WebIDF.
