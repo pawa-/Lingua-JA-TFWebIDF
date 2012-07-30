@@ -19,14 +19,14 @@ my %config = (
     term_length_min   => 1,
     term_length_max   => 30,
     df_min            => 0,
-    concatenation_max => 0,
+    concat_max        => 0,
 );
 
 my $tfidf = Lingua::JA::TFWebIDF->new(\%config);
 ds_check( $tfidf->tfidf('テスト')->dump, '' );
 ds_check( $tfidf->tfidf({ 'テスト' => 1 })->dump, 'HASH' );
 
-$config{concatenation_max} = 100;
+$config{concat_max} = 100;
 $tfidf = Lingua::JA::TFWebIDF->new(\%config);
 ds_check_concat( $tfidf->tfidf('情報統合')->dump );
 ds_check_list_size( $tfidf->tfidf('情報統合')->dump, '2', '情報統合' );

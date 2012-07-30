@@ -42,7 +42,7 @@ my $tfidf = Lingua::JA::TFWebIDF->new(
     df_min            => 100,
     df_max            => 125_0000_0000,
     term_length_min   => 1,
-    concatenation_max => 0,
+    concat_max        => 0,
 );
 
 

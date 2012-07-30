@@ -16,7 +16,7 @@ my $tfidf = Lingua::JA::TFWebIDF->new(
     pos3_filter       => [],
     ng_word           => [qw/表 課題/],
     term_length_min   => 1,
-    concatenation_max => 0,
+    concat_max        => 0,
 );
 
 my %tf = (

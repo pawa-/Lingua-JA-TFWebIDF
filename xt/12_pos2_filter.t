@@ -17,7 +17,7 @@ my $tfidf = Lingua::JA::TFWebIDF->new(
     pos2_filter       => [qw/人名/],
     pos3_filter       => [qw//],
     ng_word           => [],
-    concatenation_max => 0,
+    concat_max        => 0,
 );
 
 

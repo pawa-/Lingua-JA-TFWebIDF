@@ -1,5 +1,10 @@
 Revision history for Perl extension Lingua::JA::TFWebIDF
 
+0.36    Tue, 31 Jul 2012 00:55:36 +0900
+        - added db_auto option
+        - added dependency on Test::Requires
+        - renamed concatenation_max concat_max
+
 0.35    Sun, 29 Jul 2012 19:05:36 +0900
         - fixed documentation
 

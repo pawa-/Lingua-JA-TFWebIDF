@@ -26,7 +26,7 @@ my %config = (
     term_length_min   => 1,
     term_length_max   => 20,
     df_min            => 0,
-    concatenation_max => 0,
+    concat_max        => 0,
 );
 
 my $unk  = '痔辭兒獅嗣璽';

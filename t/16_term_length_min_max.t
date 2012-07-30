@@ -17,7 +17,7 @@ my $tfidf = Lingua::JA::TFWebIDF->new(
     ng_word           => [],
     term_length_min   => 2,
     term_length_max   => 30,
-    concatenation_max => 0,
+    concat_max        => 0,
 );
 
 my %tf = (
