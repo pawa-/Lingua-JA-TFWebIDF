@@ -295,7 +295,7 @@ sub _calc_tf
         else
         {
             my $next;
-            $next = decode_utf8($node->next->surface) if $node->next;
+            $next = $node->next->surface if $node->next;
 
             my ($pos, $pos1, $pos2, $pos3);
             my $is_ng_word = 0;
