@@ -12,7 +12,7 @@ use Text::MeCab;
 use Lingua::JA::Halfwidth::Katakana;
 use Lingua::JA::TFWebIDF::Result;
 
-our $VERSION = '0.36';
+our $VERSION = '0.37';
 
 
 sub new
@@ -435,7 +435,7 @@ my ($appid, $word, @ng_words, $text);
       df_file           => './yahoo.tch',
       pos1_filter       => [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能 サ変接続/],
       term_length_min   => 2,
-      tf_min            => 2,
+      tf_min            => 1,
       df_min            => 1_0000,
       df_max            => 500_0000,
       ng_word           => [qw/編集 本人 自身 自分 たち さん/],

@@ -1,5 +1,8 @@
 Revision history for Perl extension Lingua::JA::TFWebIDF
 
+0.37    Tue, 31 Jul 2012 09:43:07 +0900
+        - removed unnecessary decode_utf8
+
 0.36    Tue, 31 Jul 2012 00:55:36 +0900
         - added db_auto option
         - added dependency on Test::Requires
