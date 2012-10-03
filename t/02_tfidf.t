@@ -11,11 +11,14 @@ binmode Test::More->builder->$_ => ':utf8'
 
 my $tfidf = Lingua::JA::TFWebIDF->new(
     appid       => 'test',
+    driver      => 'Storable',
+    df_file     => './df/flagged_utf8.st',
     fetch_df    => 0,
     pos1_filter => [],
     pos2_filter => [],
     pos3_filter => [],
     ng_word     => [],
+    verbose     => 0,
 );
 
 my %tf = (
@@ -31,40 +34,62 @@ my %tf = (
     '世界'         => 3,
 );
 
+my $text = "これはテストです。";
 
-my $result;
-warning_like { $result = $tfidf->tfidf->list(5) }
+subtest 'list size' => sub {
+
+    binmode Test::More->builder->$_ => ':utf8'
+        for qw/output failure_output todo_output/;
+
+    my $result;
+    warning_like { $result = $tfidf->tfidf->list(5) }
     qr/called without arguments/, 'called without arguments';
 
-is(scalar @{$result}, 0, 'list size for undefined value');
-is(scalar @{ $tfidf->tfidf(\%tf)->list(5) },  5,  'list size');
-is(scalar @{ $tfidf->tfidf(\%tf)->list(50) }, 10, 'specified too many list size');
-is(scalar @{ $tfidf->tfidf(\%tf)->list },     10, 'unspecified list size');
-is(scalar @{ $tfidf->tfidf({})->list(5) },    0,  'list size for empty hash ref');
-is(scalar @{ $tfidf->tfidf('')->list(5) },    0,  'list size for empty string');
+    is(scalar @{$result}, 0, 'list size for undefined value');
+    is(scalar @{ $tfidf->tfidf(\%tf)->list(5) },  5,  'normal list size');
+    is(scalar @{ $tfidf->tfidf(\%tf)->list(50) }, 10, 'too many list size');
+    is(scalar @{ $tfidf->tfidf(\%tf)->list },     10, 'unspecified list size');
+    is(scalar @{ $tfidf->tfidf({})->list(5) },    0,  'list size for empty hash ref');
+    is(scalar @{ $tfidf->tfidf('')->list(5) },    0,  'list size for empty string');
+};
 
-my @ranking;
+subtest 'output format and sorting' => sub {
 
-for my $result (@{ $tfidf->tfidf(\%tf)->list(5) })
-{
-    my ($word, $score) = each %{$result};
+    binmode Test::More->builder->$_ => ':utf8'
+        for qw/output failure_output todo_output/;
 
-    push(@ranking, $word);
+    my @ranking;
 
-    unlike($word, qr/^[0-9\.]+$/, 'word fromat');
-    like($score, qr/^[0-9\.]+$/,  'score format');
-}
+    for my $result (@{ $tfidf->tfidf(\%tf)->list(5) })
+    {
+        my ($word, $score) = each %{$result};
 
-is($ranking[0], '自然言語処理', 'sorting');
+        push(@ranking, $word);
 
-for my $result (@{ $tfidf->tfidf("これはテストです。")->list(5) })
-{
-    my ($word, $score) = each %{$result};
+        unlike($word, qr/^[0-9\.]+$/, 'word fromat for hash ref');
+        like($score, qr/^[0-9\.]+$/,  'score format for hash ref');
+    }
 
-    unlike($word, qr/^[0-9\.]+$/, 'word fromat');
-    like($score, qr/^[0-9\.]+$/,  'score format');
-}
+    is($ranking[0], '自然言語処理', 'sorting');
 
-is(ref ($tfidf->tfidf("これはテストです。")->dump), 'HASH', 'dump method returns HASH ref');
+    for my $result (@{ $tfidf->tfidf($text)->list(5) })
+    {
+        my ($word, $score) = each %{$result};
+
+        unlike($word, qr/^[0-9\.]+$/, 'word fromat for text');
+        like($score, qr/^[0-9\.]+$/,  'score format for text');
+    }
+
+    for my $result (@{ $tfidf->tfidf(\$text)->list(5) })
+    {
+        my ($word, $score) = each %{$result};
+
+        unlike($word, qr/^[0-9\.]+$/, 'word fromat for text ref');
+        like($score, qr/^[0-9\.]+$/,  'score format for text ref');
+    }
+
+    is(ref($tfidf->tfidf($text)->dump), 'HASH', 'dump method returns HASH ref');
+    is(ref($tfidf->tfidf(\$text)->dump), 'HASH', 'dump method returns HASH ref');
+};
 
 done_testing;

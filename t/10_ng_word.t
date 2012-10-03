@@ -10,6 +10,8 @@ binmode Test::More->builder->$_ => ':utf8'
 
 my $tfidf = Lingua::JA::TFWebIDF->new(
     appid           => 'test',
+    driver          => 'Storable',
+    df_file         => './df/flagged_utf8.st',
     fetch_df        => 0,
     pos1_filter     => [],
     pos2_filter     => [],

@@ -11,6 +11,8 @@ binmode Test::More->builder->$_ => ':utf8'
 
 my $tfidf = Lingua::JA::TFWebIDF->new(
     appid       => 'test',
+    driver      => 'Storable',
+    df_file     => './df/flagged_utf8.st',
     fetch_df    => 0,
     pos1_filter => [],
     pos2_filter => [],
@@ -18,7 +20,9 @@ my $tfidf = Lingua::JA::TFWebIDF->new(
     ng_word     => [],
 );
 
-for my $result (@{ $tfidf->tf("これはテストです。")->list(10) })
+my $text = "これはテストです。";
+
+for my $result (@{ $tfidf->tf($text)->list(10) })
 {
     my ($word, $freq) = each %{$result};
 
@@ -26,12 +30,22 @@ for my $result (@{ $tfidf->tf("これはテストです。")->list(10) })
     like($freq, qr/^[0-9]+$/,  'freq format');
 }
 
+for my $result (@{ $tfidf->tf(\$text)->list(10) })
+{
+    my ($word, $freq) = each %{$result};
+
+    unlike($word, qr/^[0-9]+$/, 'word fromat for text ref');
+    like($freq, qr/^[0-9]+$/,  'freq format for text ref');
+}
+
 my $result;
+
 warnings_like { $result = $tfidf->tf->list(10) }
     qr/called without arguments/, 'called without arguments';
 
 is(scalar @{$result}, 0, 'list size for undefined value');
 is(scalar @{ $tfidf->tf('')->list(10) }, 0, 'list size for empty string');
-is(ref ($tfidf->tf("これはテストです。")->dump), 'HASH', 'dump method returns HASH ref');
+is(ref ($tfidf->tf($text)->dump), 'HASH', 'dump method returns HASH ref');
+is(ref ($tfidf->tf(\$text)->dump), 'HASH', 'dump method returns HASH ref');
 
 done_testing;

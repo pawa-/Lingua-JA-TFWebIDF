@@ -10,13 +10,11 @@ binmode Test::More->builder->$_ => ':utf8'
     for qw/output failure_output todo_output/;
 
 
-unlink './test.tch';
-
 my %config = (
     appid           => 'test',
     fetch_df        => 0,
     driver          => 'TokyoCabinet',
-    df_file         => './test.tch',
+    df_file         => './df/utf8.tch',
     pos1_filter     => [],
     pos2_filter     => [],
     pos3_filter     => [],
@@ -29,13 +27,22 @@ my %config = (
 );
 
 my $tfidf = Lingua::JA::TFWebIDF->new(\%config);
-my $exception = exception{ $tfidf->tfidf('テスト'); };
+my $exception = exception { $tfidf->tfidf('テスト'); };
 like($exception, qr/not opened/, 'not opened');
 
 $tfidf->db_open('read');
 $exception = exception{ $tfidf->tfidf('テスト'); };
 is($exception, undef, 'opened');
+$tfidf->db_close;
 
-unlink './test.tch';
+$config{db_auto} = 1;
+$tfidf = Lingua::JA::TFWebIDF->new(\%config);
+$exception = exception { $tfidf->tfidf('テスト'); };
+is($exception, undef, 'db_auto works');
+
+$config{db_auto} = 0;
+$tfidf = Lingua::JA::TFWebIDF->new(\%config);
+$exception = exception { $tfidf->tfidf('テスト'); };
+like($exception, qr/not opened/, 'db_auto works');
 
 done_testing;

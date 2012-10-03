@@ -8,20 +8,8 @@ SYNOPSIS
       use Data::Printer;
 
       my $tfidf = Lingua::JA::TFWebIDF->new(
-          api               => 'YahooPremium',
-          appid             => $appid,
-          fetch_df          => 1,
-          Furl_HTTP         => { timeout => 3 },
-          driver            => 'TokyoCabinet',
-          df_file           => './yahoo.tch',
-          pos1_filter       => [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能 サ変接続/],
-          term_length_min   => 2,
-          tf_min            => 1,
-          df_min            => 1_0000,
-          df_max            => 500_0000,
-          ng_word           => [qw/編集 本人 自身 自分 たち さん/],
-          fetch_unk_word_df => 0,
-          concat_max        => 100,
+          pos1_filter => [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能 サ変接続/],
+          ng_word     => [qw/編集 本人 自身 自分 たち さん/],
       );
 
       my %tf = (
@@ -39,20 +27,20 @@ SYNOPSIS
 
       for my $result (@{ $tfidf->tfidf($text)->list(20) })
       {
-          my ($word, $score) = each %{$result};
+          my ($word, $weight) = each %{$result};
 
-          say "$word: $score";
+          say "$word: $weight";
       }
 
 DESCRIPTION
-    Lingua::JA::TFWebIDF calculates TF*WebIDF scores.
+    Lingua::JA::TFWebIDF calculates TF*WebIDF weight.
 
     Compared with Lingua::JA::TFIDF, this module has the following
     advantages.
 
-    *   supports Tokyo Cabinet, Bing API and many options.
+    *   supports Tokyo Cabinet and many options.
 
-    *   tfidf function accepts \%tf. (This eases the use of other
+    *   tfidf method accepts \%tf. (This facilitates the use of other
         morphological analyzers.)
 
 METHODS
@@ -63,7 +51,7 @@ METHODS
 
       KEY                 DEFAULT VALUE
       -----------         ---------------
-      pos1_filter         [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能 接尾/]
+      pos1_filter         [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能/]
       pos2_filter         []
       pos3_filter         []
       ng_word             []
@@ -75,16 +63,18 @@ METHODS
       df_max              250_0000_0000
       fetch_unk_word_df   0
       db_auto             1
+      guess_df            1
 
       idf_type            1
-      api                 'Yahoo'
+      api                 'YahooPremium'
       appid               undef
-      driver              'Storable'
-      df_file             undef
-      fetch_df            1
+      driver              'TokyoCabinet'
+      df_file             './df.tch'
+      fetch_df            0
       expires_in          365
       documents           250_0000_0000
       Furl_HTTP           undef
+      verbose             0
 
     pos(1|2|3)_filter => \@pos
         The filters of '品詞細分類'.
@@ -95,50 +85,48 @@ METHODS
         If 2 is specified, 2 consecutive nouns are concatenated. I recommend
         that you specify a large value or 0.
 
-        If half width spaces or tabs are ignored, you need to replace them
-        with full width spaces.
-
     fetch_df => 0 || 1
-        1: Fetches the DF score of a word which exists in the dictionary of
-        MeCab if DF score of its word is not fetched yet.
+        1: Fetches the WebDF(Document Frequency) of the words which exist in
+        the dictionary of MeCab if WebDF of their words are not fetched yet.
 
-        0: The average DF score is used.
+        0: The average WebDF is used if guess_df is 1.
 
     fetch_unk_word_df => 0 || 1
         'unk word' is a word which not exists in the dictionary of MeCab.
 
-        1: If fetch_df is 1, fetches DF score of unk word.
+        1: Fetches (Web)DF of the unk word if fetch_df is 1.
 
-        0: The average DF score is used.
+        0: The average WebDF is used if guess_df is 1.
 
     db_auto => 0 || 1
-        If 1 is specified, (open|close)s the DF(Document Frequency) database
-        automatically.
+        If 1 is specified, (open|close)s the WebDF(Document Frequency)
+        database automatically.
 
-    idf_type, api, appid, driver, df_file, expires_in, documents, Furl_HTTP
+    idf_type, api, appid, driver, df_file, expires_in, documents, Furl_HTTP,
+    verbose
         See Lingua::JA::WebIDF.
 
-  tfidf( $text || \%tf )
-    Calculates TF*WebIDF score. If scalar value is set, MeCab separates the
-    value into appropriate morphemes. If you want to use other morphological
-    analyzers, you have to set a hash reference which contains terms and
-    their TF scores.
+  tfidf( $text || \$text || \%tf )
+    Calculates TF*WebIDF weight. If scalar value or scalar reference is set,
+    MeCab separates the value into appropriate morphemes. If you want to use
+    other morphological analyzers, you have to set a hash reference which
+    contains terms and their TF(Term Frequency).
 
-  tf($text)
-    Calculates TF score via MeCab.
+  tf( $text || \$text )
+    Calculates TF via MeCab.
 
-  idf, df, purge, db_open, db_close
+  idf, df, db_open, db_close, purge
     See Lingua::JA::WebIDF.
 
 AUTHOR
     pawa <pawapawa@cpan.org>
 
 SEE ALSO
+    Lingua::JA::TermExtractor
+
     Lingua::JA::WebIDF
 
     Lingua::JA::WebIDF::Driver::TokyoTyrant
-
-    Lingua::JA::TermExtractor
 
 LICENSE
     This library is free software; you can redistribute it and/or modify it

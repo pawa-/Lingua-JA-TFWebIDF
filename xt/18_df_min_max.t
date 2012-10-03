@@ -9,7 +9,8 @@ binmode Test::More->builder->$_ => ':utf8'
     for qw/output failure_output todo_output/;
 
 
-unlink 'df.st';
+my $df_file = './df.st';
+unlink $df_file;
 
 my %data = (
     '99'          => "99\t1",
@@ -20,7 +21,7 @@ my %data = (
     '12500000001' => "12500000001\t1",
 );
 
-Storable::nstore(\%data, 'df.st');
+Storable::nstore(\%data, $df_file) or die $!;
 
 my %tf = (
     '99'          => 1,
@@ -33,8 +34,9 @@ my %tf = (
 
 my $tfidf = Lingua::JA::TFWebIDF->new(
     appid             => 'test',
+    driver            => 'Storable',
+    df_file           => $df_file,
     fetch_df          => 0,
-    df_file           => 'df.st',
     pos1_filter       => [],
     pos2_filter       => [],
     pos3_filter       => [],
@@ -62,7 +64,7 @@ ok(  grep { $_ eq '12499999999' } fetch_term( $tfidf->tfidf("@text")->list(20) )
 ok(  grep { $_ eq '12500000000' } fetch_term( $tfidf->tfidf("@text")->list(20) ) );
 ok( !grep { $_ eq '12500000001' } fetch_term( $tfidf->tfidf("@text")->list(20) ) );
 
-unlink 'df.st';
+unlink $df_file;
 
 done_testing;
 

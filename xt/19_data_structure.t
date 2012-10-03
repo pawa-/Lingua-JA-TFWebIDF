@@ -3,6 +3,7 @@ use warnings;
 use utf8;
 use Lingua::JA::TFWebIDF;
 use Test::More;
+use Test::Requires qw/TokyoCabinet/;
 
 binmode Test::More->builder->$_ => ':utf8'
     for qw/output failure_output todo_output/;
@@ -10,6 +11,8 @@ binmode Test::More->builder->$_ => ':utf8'
 
 my %config = (
     appid             => 'test',
+    driver            => 'TokyoCabinet',
+    df_file           => './df/utf8.tch',
     fetch_df          => 0,
     pos1_filter       => [],
     pos2_filter       => [],
@@ -22,16 +25,24 @@ my %config = (
     concat_max        => 0,
 );
 
+my ($text1, $text2, $text3) = qw/テスト 情報統合 pa-/;
+
+
 my $tfidf = Lingua::JA::TFWebIDF->new(\%config);
-ds_check( $tfidf->tfidf('テスト')->dump, '' );
-ds_check( $tfidf->tfidf({ 'テスト' => 1 })->dump, 'HASH' );
+ds_check( $tfidf->tfidf($text1)->dump, '' );
+ds_check( $tfidf->tfidf(\$text1)->dump, '' );
+ds_check( $tfidf->tfidf({ $text1 => 1 })->dump, 'HASH' );
 
 $config{concat_max} = 100;
 $tfidf = Lingua::JA::TFWebIDF->new(\%config);
-ds_check_concat( $tfidf->tfidf('情報統合')->dump );
-ds_check_list_size( $tfidf->tfidf('情報統合')->dump, '2', '情報統合' );
-ds_check_concat( $tfidf->tfidf('pa-')->dump );
-ds_check_list_size( $tfidf->tfidf('pa-')->dump, '1', 'pa' );
+ds_check_concat( $tfidf->tfidf($text2)->dump );
+ds_check_list_size( $tfidf->tfidf($text2)->dump, '2', '情報統合' );
+ds_check_concat( $tfidf->tfidf(\$text2)->dump );
+ds_check_list_size( $tfidf->tfidf(\$text2)->dump, '2', '情報統合' );
+ds_check_concat( $tfidf->tfidf($text3)->dump );
+ds_check_list_size( $tfidf->tfidf($text3)->dump, '1', 'pa' );
+ds_check_concat( $tfidf->tfidf(\$text3)->dump );
+ds_check_list_size( $tfidf->tfidf(\$text3)->dump, '1', 'pa' );
 
 done_testing;
 
@@ -53,16 +64,18 @@ sub ds_check
 
 sub ds_check_concat
 {
-    my $data = shift;;
+    my $data = shift;
 
     for my $word (keys %{$data})
     {
-        like($data->{$word}{df},    qr/^[0-9]+$/,   'df');
-        like($data->{$word}{idf},   qr/^[\.0-9]+$/, 'idf');
-        is(ref $data->{$word}{info},    'ARRAY',    'info');
-        is(ref $data->{$word}{unknown}, 'ARRAY',    'unknown');
-        like($data->{$word}{tf},    qr/^[0-9]+$/,   'tf');
-        like($data->{$word}{tfidf}, qr/^[\.0-9]+$/, 'tfidf');
+        like($data->{$word}{df},    qr/^[0-9]+$/,      'df');
+        like($data->{$word}{idf},   qr/^[\.0-9]+$/,    'idf');
+        is(ref $data->{$word}{info},    'ARRAY',       'info');
+        is(ref $data->{$word}{unknown}, 'ARRAY',       'unknown');
+        like("@{ $data->{$word}{info} }",    qr/^(.+,.+)+$/, 'content of info');
+        like("@{ $data->{$word}{unknown} }", qr/^[01 ]+$/, 'content of unknown');
+        like($data->{$word}{tf},    qr/^[0-9]+$/,      'tf');
+        like($data->{$word}{tfidf}, qr/^[\.0-9]+$/,    'tfidf');
     }
 }
 

@@ -3,6 +3,7 @@ use warnings;
 use utf8;
 use Lingua::JA::TFWebIDF;
 use Test::More;
+use Test::Requires qw/TokyoCabinet/;
 
 binmode Test::More->builder->$_ => ':utf8'
     for qw/output failure_output todo_output/;
@@ -10,6 +11,8 @@ binmode Test::More->builder->$_ => ':utf8'
 
 my $tfidf = Lingua::JA::TFWebIDF->new(
     appid             => 'test',
+    driver            => 'TokyoCabinet',
+    df_file           => './df/utf8.tch',
     fetch_df          => 0,
     pos1_filter       => [],
     pos2_filter       => [],

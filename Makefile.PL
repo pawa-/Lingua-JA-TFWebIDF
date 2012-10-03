@@ -6,7 +6,7 @@ all_from 'lib/Lingua/JA/TFWebIDF.pm';
 requires 'parent';
 requires 'Carp';
 requires 'Text::MeCab' => 0.20013;
-requires 'Lingua::JA::WebIDF' => 0.32;
+requires 'Lingua::JA::WebIDF' => 0.40;
 requires 'Lingua::JA::Halfwidth::Katakana';
 
 test_requires 'Test::More' => 0.98;
