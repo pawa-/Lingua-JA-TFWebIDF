@@ -86,21 +86,42 @@ METHODS
         that you specify a large value or 0.
 
     fetch_df => 0 || 1
-        1: Fetches the WebDF(Document Frequency) of the words which exist in
-        the dictionary of MeCab if WebDF of their words are not fetched yet.
+        If df_file has the (Web)DF and it has not expired yet, it is used.
 
-        0: The average WebDF is used if guess_df is 1.
+        If it is not so,
+
+        1: fetches the DF of the word which exists in the dictionary of
+        MeCab.
+
+        0: if guess_df is 1, guesses the DF.
+
+        if guess_df is 0, does not give TF*WebIDF weight.
 
     fetch_unk_word_df => 0 || 1
         'unk word' is a word which not exists in the dictionary of MeCab.
 
-        1: Fetches (Web)DF of the unk word if fetch_df is 1.
+        If df_file has the (Web)DF and it has not expired yet, it is used.
 
-        0: The average WebDF is used if guess_df is 1.
+        If it is not so,
+
+        1: fetches the DF of the unk word if fetch_df is 1.
+
+        0: if guess_df is 1, guesses the DF.
+
+        if guess_df is 0, does not give TF*WebIDF weight.
 
     db_auto => 0 || 1
         If 1 is specified, (open|close)s the WebDF(Document Frequency)
         database automatically.
+
+    guess_df => 0 || 1
+        If df_file has the (Web)DF and it has not expired yet, it is used.
+
+        If it is not so,
+
+        1: guesses the DF based on the string length of $word.
+
+        0: doesn't give TF*WebIDF weight.
 
     idf_type, api, appid, driver, df_file, expires_in, documents, Furl_HTTP,
     verbose
@@ -113,7 +134,7 @@ METHODS
     contains terms and their TF(Term Frequency).
 
   tf( $text || \$text )
-    Calculates TF via MeCab.
+    Calculates TF(Term Frequency) via MeCab.
 
   idf, df, db_open, db_close, purge
     See Lingua::JA::WebIDF.
