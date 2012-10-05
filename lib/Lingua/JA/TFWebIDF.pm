@@ -341,8 +341,8 @@ sub _calc_tf
                     $is_ng_word = 1;
                 }
 
-                my $next = $node->next;
-                $next = $ENCODER->decode($next->surface) if defined $next->surface;
+                my $next = $node->next->surface;
+                $next = (defined $next) ? $ENCODER->decode($next) : '';
 
                 if ( _is_concatable($word, $next, $concated_word, $pos, $pos1, $unknown, $is_ng_word, $ng_word) )
                 {
@@ -354,7 +354,7 @@ sub _calc_tf
 
                     $concat_cnt++;
 
-                    if ( $concat_cnt > $concat_max || (!defined $next && length $concated_word) )
+                    if ( $concat_cnt > $concat_max || (!length $next && length $concated_word) )
                     {
                         $self->_store_concated_word(\$concated_word, \@concated_infos, \@concated_unknowns, $data);
                         $concat_cnt = 0;
