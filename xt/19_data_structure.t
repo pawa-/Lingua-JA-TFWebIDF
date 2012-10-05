@@ -2,6 +2,8 @@ use strict;
 use warnings;
 use utf8;
 use Lingua::JA::TFWebIDF;
+use Encode ();
+use Text::MeCab;
 use Test::More;
 use Test::Requires qw/TokyoCabinet/;
 
@@ -38,7 +40,9 @@ $tfidf = Lingua::JA::TFWebIDF->new(\%config);
 ds_check_concat( $tfidf->tfidf($text2)->dump );
 ds_check_list_size( $tfidf->tfidf($text2)->dump, '2', '情報統合' );
 ds_check_concat( $tfidf->tfidf(\$text2)->dump );
-ds_check_list_size( $tfidf->tfidf(\$text2)->dump, '2', '情報統合' );
+
+$text2 = Encode::decode(Text::MeCab::ENCODING, $text2);
+ds_check_list_size( $tfidf->tfidf(\$text2)->dump, '2', '情報統合');
 ds_check_concat( $tfidf->tfidf($text3)->dump );
 ds_check_list_size( $tfidf->tfidf($text3)->dump, '1', 'pa' );
 ds_check_concat( $tfidf->tfidf(\$text3)->dump );

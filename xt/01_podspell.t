@@ -11,6 +11,7 @@ Lingua::JA::TFWebIDF
 MeCab
 NG
 TF
+tf
 df
 idf
 API

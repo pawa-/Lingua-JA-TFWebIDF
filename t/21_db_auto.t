@@ -26,23 +26,25 @@ my %config = (
     db_auto         => 0,
 );
 
+my $text = "テスト" x 8;
+
 my $tfidf = Lingua::JA::TFWebIDF->new(\%config);
-my $exception = exception { $tfidf->tfidf('テスト'); };
+my $exception = exception { $tfidf->tfidf($text); };
 like($exception, qr/not opened/, 'not opened');
 
 $tfidf->db_open('read');
-$exception = exception{ $tfidf->tfidf('テスト'); };
+$exception = exception{ $tfidf->tfidf($text); };
 is($exception, undef, 'opened');
 $tfidf->db_close;
 
 $config{db_auto} = 1;
 $tfidf = Lingua::JA::TFWebIDF->new(\%config);
-$exception = exception { $tfidf->tfidf('テスト'); };
+$exception = exception { $tfidf->tfidf($text); };
 is($exception, undef, 'db_auto works');
 
 $config{db_auto} = 0;
 $tfidf = Lingua::JA::TFWebIDF->new(\%config);
-$exception = exception { $tfidf->tfidf('テスト'); };
+$exception = exception { $tfidf->tfidf($text); };
 like($exception, qr/not opened/, 'db_auto works');
 
 done_testing;

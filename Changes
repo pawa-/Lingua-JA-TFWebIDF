@@ -1,5 +1,13 @@
 Revision history for Perl extension Lingua::JA::TFWebIDF
 
+0.40    Fri, 05 Oct 2012 11:06:46 +0900
+        - changed Lingua::JA::WebIDF dependency from 0.32 to 0.40
+        - changed default options
+        - changed (en|de)code utf8 -> Text::MeCab::ENCODING
+        - added guess_df option
+        - fixed concat_max option
+        - improved tests
+
 0.37    Tue, 31 Jul 2012 09:43:07 +0900
         - removed unnecessary decode_utf8
 

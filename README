@@ -8,8 +8,8 @@ SYNOPSIS
       use Data::Printer;
 
       my $tfidf = Lingua::JA::TFWebIDF->new(
-          pos1_filter => [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能 サ変接続/],
-          ng_word     => [qw/編集 本人 自身 自分 たち さん/],
+          pos1_filter => [qw/非自立 代名詞 ナイ形容詞語幹 副詞可能 サ変接続/],
+          ng_word     => [qw/編集 本人 自身 自分 たち さん 年 月 日/],
       );
 
       my %tf = (
@@ -51,7 +51,7 @@ METHODS
 
       KEY                 DEFAULT VALUE
       -----------         ---------------
-      pos1_filter         [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能/]
+      pos1_filter         [qw/非自立 代名詞 ナイ形容詞語幹 副詞可能/]
       pos2_filter         []
       pos3_filter         []
       ng_word             []
@@ -112,7 +112,8 @@ METHODS
 
     db_auto => 0 || 1
         If 1 is specified, (open|close)s the WebDF(Document Frequency)
-        database automatically.
+        database automatically. This option works when tfidf method is
+        called.
 
     guess_df => 0 || 1
         If df_file has the (Web)DF and it has not expired yet, it is used.
@@ -127,13 +128,13 @@ METHODS
     verbose
         See Lingua::JA::WebIDF.
 
-  tfidf( $text || \$text || \%tf )
-    Calculates TF*WebIDF weight. If scalar value or scalar reference is set,
-    MeCab separates the value into appropriate morphemes. If you want to use
-    other morphological analyzers, you have to set a hash reference which
-    contains terms and their TF(Term Frequency).
+  tfidf( $text || \%tf )
+    Calculates TF*WebIDF weight. If scalar value is set, MeCab separates the
+    value into appropriate morphemes. If you want to use other morphological
+    analyzers, you have to set a hash reference which contains terms and
+    their TF(Term Frequency).
 
-  tf( $text || \$text )
+  tf($text)
     Calculates TF(Term Frequency) via MeCab.
 
   idf, df, db_open, db_close, purge

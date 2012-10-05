@@ -12,12 +12,9 @@ use Text::MeCab;
 use Lingua::JA::Halfwidth::Katakana;
 use Lingua::JA::TFWebIDF::Result;
 
-our $VERSION = '0.37';
+our $VERSION = '0.40';
 
-my $ENCODER       = Encode::find_encoding(Text::MeCab::ENCODING);
-my $HANKAKU_SPACE = q{ };
-my $ZENKAKU_SPACE = q{　};
-
+my $ENCODER = Encode::find_encoding(Text::MeCab::ENCODING);
 my $USE_AVERAGE_DF_MAX_TERM_LENGTH = 20;
 
 our %TERM_LENGTH_TO_AVERAGE_DF = (
@@ -278,7 +275,7 @@ sub _calc_tf
 {
     my ($self, $text_ref) = @_;
 
-    $$text_ref =~ s/$HANKAKU_SPACE/$ZENKAKU_SPACE/g;
+    $$text_ref =~ tr/ \n/　/;
 
     my $data             = {};
     my $mecab            = $self->{mecab};
@@ -293,6 +290,8 @@ sub _calc_tf
     my (@concated_infos, @concated_unknowns);
     my $concated_word = '';
     my $concat_cnt = 0;
+
+    $$text_ref = $ENCODER->encode($$text_ref);
 
     for (my $node = $mecab->parse($$text_ref); $node; $node = $node->next)
     {
@@ -314,7 +313,7 @@ sub _calc_tf
                 next if $unknown && $pos1 eq 'サ変接続';
                 next if length $word < $term_length_min;
                 next if length $word > $term_length_max;
-                next if length $word == 1 && ($word =~ /[\p{InHiragana}\p{InKatakana}\p{InHalfwidthKatakana}]/ || $pos1 eq '接尾');
+                next if length $word == 1 && $word =~ /[\p{InHiragana}\p{InKatakana}\p{InHalfwidthKatakana}]/;
 
                 $data->{$word}{tf}++;
                 $data->{$word}{info} = $info;
@@ -343,7 +342,7 @@ sub _calc_tf
                 }
 
                 my $next = $node->next;
-                $next = $ENCODER->decode($next->surface) if $next && length $next->surface;
+                $next = $ENCODER->decode($next->surface) if defined $next->surface;
 
                 if ( _is_concatable($word, $next, $concated_word, $pos, $pos1, $unknown, $is_ng_word, $ng_word) )
                 {
@@ -425,7 +424,7 @@ sub _is_concatable
 
     if (length $concated_word)
     {
-        return 1 if ( ($word eq '-' || $word eq '・') && ($next ne '-' && $next ne '・') && $concated_word !~ /\p{Han}/ )
+        return 1 if ( ($word eq '-' || $word eq '・') && ($next ne '-' && $next ne '・') && $concated_word !~ /^(?:\p{Han}+|[0-9]+)$/ )
     }
 
     return 0;
@@ -449,35 +448,36 @@ sub _store_concated_word
 
     if (length $$concated_word >= $term_length_min && length $$concated_word <= $term_length_max)
     {
-
-        if (
-            length $$concated_word == 1
-         && ( (split(/,/, $concated_infos->[0], 3))[1] eq '接尾' || $$concated_word =~ /[\p{InHiragana}\p{InKatakana}\p{InHalfwidthKatakana}]/ )
-        )
+        if (length $$concated_word == 1 && $$concated_word =~ /[\p{InHiragana}\p{InKatakana}\p{InHalfwidthKatakana}]/ )
         {
-            # 接尾 "オンリー" はいかなる時も認めない
-            # 平仮名・片仮名・半角片仮名の１文字も認めない
-        }
-        elsif (scalar @{$concated_infos} == 1 && (split(/,/, $concated_infos->[0], 3))[1] eq '数')
-        {
-            # 数詞 ”オンリー” はいかなる時も認めない
-            # 00 とか 12345 とか抽出できても誰得？
-            # NGワードに「年」などがあれば「2010年」なども飛ばせる
-        }
-        elsif (exists $self->{pos1_filter}{'サ変接続'} && (split(/,/, $concated_infos->[-1], 3))[1] eq 'サ変接続')
-        {
-            # 例えば、「情報統合思念」という複合名詞がここに来た場合、
-            # サ変接続でない「情報」も飛ばしてしまう。
-            # この「情報」はサ変接続の複合名詞の一部だから飛ばすべきか、
-            # 結合前は一般名詞だから飛ばすべきでないかは微妙なところである。
-            # 飛ばしたくない場合はこの辺にコードを加筆する必要あり。
-            # 「情報統合思念体」は最後の「体」がサ変接続でないのでここには来ない。
+            # 平仮名・片仮名・半角片仮名の１文字は認めない
         }
         else
         {
-            $data->{$$concated_word}{tf}++;
-            @{ $data->{$$concated_word}->{unknown} } = @{ $concated_unknowns };
-            @{ $data->{$$concated_word}->{info}    } = @{ $concated_infos };
+            my $last_pos1 = (split(/,/, $concated_infos->[-1], 3))[1];
+
+            if ( scalar @{$concated_infos} == 1 && ($last_pos1 eq '数' || $last_pos1 eq '接尾') )
+            {
+                # 数 ”オンリー” はいかなる時も認めない
+                # 00 とか 12345 とか抽出できても誰得？
+                # NGワードに「年」などがあれば「2010年」なども飛ばせる
+                # 接尾 "オンリー" もいかなる時も認めない
+            }
+            elsif (exists $self->{pos1_filter}{'サ変接続'} && $last_pos1 eq 'サ変接続')
+            {
+                # 例えば、「情報統合思念」という複合名詞がここに来た場合、
+                # サ変接続でない「情報」も飛ばしてしまう。
+                # この「情報」はサ変接続の複合名詞の一部だから飛ばすべきか、
+                # 結合前は一般名詞だから飛ばすべきでないかは微妙なところである。
+                # 飛ばしたくない場合はこの辺にコードを加筆する必要あり。
+                # 「情報統合思念体」は最後の「体」がサ変接続でないのでここには来ない。
+            }
+            else
+            {
+                $data->{$$concated_word}{tf}++;
+                @{ $data->{$$concated_word}->{unknown} } = @{ $concated_unknowns };
+                @{ $data->{$$concated_word}->{info}    } = @{ $concated_infos };
+            }
         }
     }
 
@@ -507,8 +507,8 @@ my ($text);
   use Data::Printer;
 
   my $tfidf = Lingua::JA::TFWebIDF->new(
-      pos1_filter => [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能 サ変接続/],
-      ng_word     => [qw/編集 本人 自身 自分 たち さん/],
+      pos1_filter => [qw/非自立 代名詞 ナイ形容詞語幹 副詞可能 サ変接続/],
+      ng_word     => [qw/編集 本人 自身 自分 たち さん 年 月 日/],
   );
 
   my %tf = (
@@ -556,7 +556,7 @@ The following configuration is used if you don't set %config.
 
   KEY                 DEFAULT VALUE
   -----------         ---------------
-  pos1_filter         [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能/]
+  pos1_filter         [qw/非自立 代名詞 ナイ形容詞語幹 副詞可能/]
   pos2_filter         []
   pos3_filter         []
   ng_word             []
@@ -626,6 +626,7 @@ if guess_df is 0, does not give TF*WebIDF weight.
 =item db_auto => 0 || 1
 
 If 1 is specified, (open|close)s the WebDF(Document Frequency) database automatically.
+This option works when tfidf method is called.
 
 =item guess_df => 0 || 1
 
@@ -644,15 +645,15 @@ See L<Lingua::JA::WebIDF>.
 
 =back
 
-=head2 tfidf( $text || \$text || \%tf )
+=head2 tfidf( $text || \%tf )
 
 Calculates TF*WebIDF weight.
-If scalar value or scalar reference is set,
+If scalar value is set,
 MeCab separates the value into appropriate morphemes.
 If you want to use other morphological analyzers, you have to set
 a hash reference which contains terms and their TF(Term Frequency).
 
-=head2 tf( $text || \$text )
+=head2 tf($text)
 
 Calculates TF(Term Frequency) via MeCab.
 
